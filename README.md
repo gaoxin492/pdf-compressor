@@ -1,4 +1,4 @@
-# pdf-compressor-skill
+# PDF-compressor-skill
 
 **A simple Claude skill for compressing PDFs.**
 
