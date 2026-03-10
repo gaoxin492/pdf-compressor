@@ -36,8 +36,8 @@ The script tries Ghostscript first and falls back to pikepdf automatically.
 
 **1. Get the files**
 ```bash
-git clone https://github.com/<your-username>/pdf-compressor-skill
-cd pdf-compressor-skill
+git clone https://github.com/gaoxin492/pdf-compressor
+cd pdf-compressor
 ```
 
 **2. Install Ghostscript**
@@ -136,9 +136,9 @@ The script is intentionally simple. Edit `pdf_compress.py` to add presets or cha
 
 ### 动机
 
-现在的论文越来越大。8、9 MB 的 PDF 已经很常见，里面塞满了图表、截图和实验结果。想把整篇论文扔给 AI 讨论？文件太大，要么超过上传限制，要么把 context 耗得很快。
+因为现在的论文越来越大。8、9 MB 的 PDF 已经很常见，里面塞满了图表、截图和实验结果。想把整篇论文扔给 AI 讨论，文件经常太大了，要么超过上传限制，要么把 context 耗得很快。
 
-我找了很多 PDF 压缩工具，都不太满意：免费版功能阉割，付费版不便宜，而且完全不能定制。于是写了这个简单的 Claude skill，用 Ghostscript 压缩（装不了就自动用 pikepdf 兜底），直接跟 Claude 说"帮我压缩这个 PDF"就行。
+我找了很多在线的 PDF 压缩工具，都不太满意：要么让我付费，要么老让我注册试用，而且完全不能定制。于是写了这个简单的 Claude skill，用 Ghostscript 压缩（装不了也可以用 pikepdf 兜底），直接跟 Claude 说"帮我压缩这个 PDF"就行。
 
 ### 功能
 
@@ -162,8 +162,8 @@ The script is intentionally simple. Edit `pdf_compress.py` to add presets or cha
 
 **1. 获取代码**
 ```bash
-git clone https://github.com/<your-username>/pdf-compressor-skill
-cd pdf-compressor-skill
+git clone https://github.com/gaoxin492/pdf-compressor
+cd pdf-compressor
 ```
 
 **2. 安装 Ghostscript**
@@ -245,10 +245,6 @@ python pdf_compress.py paper.pdf -q ebook -o ~/Desktop
 | `--dpi N` | 任意 | 因文件而异 | 精确控制 |
 
 *基于典型的 8–10 MB 图片多的会议论文估算。
-
-### 典型效果
-
-一篇 9 MB 的 CVPR 论文（图很多）：`screen` 压到约 1.5 MB，`ebook` 压到约 3 MB，基本满足各类上传限制。
 
 ### 定制
 
