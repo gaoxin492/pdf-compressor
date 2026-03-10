@@ -10,15 +10,15 @@
 
 ### Motivation
 
-Academic papers keep getting bigger. It's now routine to encounter 8–9 MB PDFs packed with figures, plots, and screenshots. When you want to discuss a paper in full with an AI, that size becomes a real problem — many interfaces impose file size limits, and large files chew through context budgets fast.
+Academic papers keep getting bigger. It's now routine to encounter 8–9 MB PDFs packed with figures, plots, and screenshots. When you want to discuss a paper in full with an AI, that size becomes a real problem — many interfaces impose file size limits, and large files eat through context budgets fast.
 
-I kept reaching for online PDF compressors, and kept running into the same frustrations: paywalls for anything beyond basic compression, no control over quality trade-offs, and no way to adapt the tool to my workflow. So I built this: a small, hackable Claude skill that wraps Ghostscript (with a pikepdf fallback) and lets you compress any PDF by just telling Claude to do it.
+I kept reaching for online PDF compressors and kept running into the same frustrations: paywalls for anything beyond basic compression, mandatory sign-ups, and no way to adapt the tool to my own workflow. So I built this: a small, hackable Claude skill that wraps Ghostscript (with a pikepdf fallback) and lets you compress any PDF just by telling Claude to do it.
 
 ### What it does
 
 - Compresses PDFs using **Ghostscript** (primary) or **pikepdf** (automatic fallback if GS isn't installed)
-- Three ways to control quality: named presets, 1–4 level shorthand, or explicit DPI
-- When you say "around 1MB", Claude estimates the right DPI and runs once — no slow multi-pass search
+- Control quality by named preset, 1–5 level shorthand, or explicit DPI value
+- Claude shows you a DPI menu before compressing — no guessing, no unreliable size estimates
 - Auto-names output as `filename_compressed.pdf` in the same directory
 - Works as a **standalone CLI tool** or as a **Claude skill** (Claude Code / compatible agents)
 - Responds in whatever language you use
@@ -42,7 +42,7 @@ cd pdf-compressor
 
 **2. Install Ghostscript**
 
-Ghostscript is strongly recommended — it's the only backend that can downsample images, which is where most of the savings come from in image-heavy PDFs.
+Ghostscript is strongly recommended — it's the only backend that can downsample images, which is where most of the size savings come from in image-heavy PDFs.
 
 The easiest way: run the included installer script and it will detect your OS automatically.
 
@@ -74,19 +74,32 @@ winget install ArtifexSoftware.GhostScript
 
 **3. Add as a Claude skill**
 
+Claude Code reads skills from a directory you configure. Here's how to set it up:
+
 ```bash
-# Point your Claude Code config at the skill directory
-~/pdf-compressor-skill/SKILL.md
+mkdir -p ~/.claude/skills
+mv pdf-compressor ~/.claude/skills/
 ```
+
+Then open (or create) `~/.claude/CLAUDE.md` and add:
+
+```markdown
+## Skills
+@~/.claude/skills/pdf-compressor/SKILL.md
+```
+
+The next time you start a Claude Code session, the skill is active.
+
+> **Verify it's loaded**: ask Claude "what skills do you have?" and it should mention the PDF compressor.
 
 ### Usage
 
 **As a Claude skill** — just talk naturally:
-> "Compress this paper, as small as possible."
-> "I need this PDF under 2MB for email."
-> "把这个PDF压缩到1MB左右。"
+> "Compress this paper."
+> "Help me shrink this PDF, I need to upload it."
+> "把这个 PDF 压缩一下。"
 
-Claude picks the right settings and runs once — no back-and-forth.
+Claude will show you a DPI menu, let you choose, then run and report the actual result.
 
 **As a standalone CLI tool:**
 ```bash
@@ -95,40 +108,39 @@ python pdf_compress.py
 
 # Named preset
 python pdf_compress.py paper.pdf -q screen     # 72 dpi, smallest
-python pdf_compress.py paper.pdf -q ebook      # 150 dpi, default
+python pdf_compress.py paper.pdf -q ebook      # 150 dpi
 python pdf_compress.py paper.pdf -q printer    # 300 dpi
 
-# Level shorthand (1–4)
-python pdf_compress.py paper.pdf -l 1          # 50 dpi, aggressive
-python pdf_compress.py paper.pdf -l 3          # 120 dpi, moderate
+# Level shorthand (1–5)
+python pdf_compress.py paper.pdf -l 1          # 72 dpi
+python pdf_compress.py paper.pdf -l 3          # 150 dpi
+python pdf_compress.py paper.pdf -l 5          # 300 dpi
 
 # Explicit DPI
-python pdf_compress.py paper.pdf --dpi 80
+python pdf_compress.py paper.pdf --dpi 200
 
 # Custom output directory
-python pdf_compress.py paper.pdf -q ebook -o ~/Desktop
+python pdf_compress.py paper.pdf --dpi 200 -o ~/Desktop
 ```
 
 ### Quality options
 
-| Option | DPI | Typical size* | Use case |
+For typical academic papers, **200 dpi is a good starting point** — it cuts file size significantly while keeping figures readable on screen and in print.
+
+| Option | DPI | Image quality | Good for |
 |--------|-----|--------------|----------|
-| `-q screen` / `-l 2` | 72 | ~10–20% of original | Sharing, uploading to AI |
-| `-q ebook` / `-l 4` | 150 | ~30–50% | General reading (default) |
-| `-q printer` | 300 | ~60–80% | Printing, archiving |
-| `-l 1` | 50 | ~5–10% | Aggressive, last resort |
-| `-l 3` | 120 | ~20–35% | Between screen and ebook |
-| `--dpi N` | any | varies | Precise control |
+| `-q screen` / `-l 1` | 72 | Low — visibly softer | Quick sharing, uploading to AI |
+| `-l 2` | 120 | Medium-low | Email attachments, casual reading |
+| `-q ebook` / `-l 3` | 150 | Medium | Everyday screen reading |
+| `-l 4` / `--dpi 200` | 200 | Medium-high | **Recommended for papers** — good balance |
+| `-q printer` / `-l 5` | 300 | High | Archiving, professional printing |
+| `--dpi N` | any | — | Precise control |
 
-*Estimates for a typical 8–10 MB image-heavy conference paper.
-
-### Typical results
-
-A 9 MB CVPR paper with lots of figures: `screen` → ~1.5 MB, `ebook` → ~3 MB. Well within most upload limits.
+> Actual output size varies by PDF content and cannot be predicted in advance. Claude reports the real numbers after compression.
 
 ### Customizing
 
-The script is intentionally simple. Edit `pdf_compress.py` to add presets or change defaults. Edit `SKILL.md` to change how Claude interprets requests or formats its response. This is the point of keeping it as a local skill.
+The script is intentionally simple. Edit `pdf_compress.py` to add presets or change defaults. Edit `SKILL.md` to change how Claude interprets requests or formats its responses. That's the point of keeping it as a local skill.
 
 ---
 
@@ -143,8 +155,8 @@ The script is intentionally simple. Edit `pdf_compress.py` to add presets or cha
 ### 功能
 
 - 使用 **Ghostscript**（首选）或 **pikepdf**（自动兜底）压缩 PDF
-- 三种控制方式：命名预设、1–4 档快捷选择、或直接指定 DPI
-- 说"压缩到 1MB 左右"，Claude 估算好 DPI 一次搞定，不反复尝试
+- 三种控制方式：命名预设、1–5 档快捷选择、或直接指定 DPI
+- Claude 压缩前会给你一个 DPI 菜单让你选，压缩后只汇报真实结果，不瞎猜大小
 - 自动命名输出文件为 `原文件名_compressed.pdf`，保存在同目录
 - 可以作为**独立 CLI 工具**使用，也可以作为 **Claude skill** 集成
 - 根据你使用的语言回复
@@ -198,19 +210,32 @@ winget install ArtifexSoftware.GhostScript
 
 **3. 添加为 Claude skill**
 
+Claude Code 从你配置的目录读取 skill，按以下步骤设置：
+
 ```bash
-# 在 Claude Code 配置中指向 skill 目录
-~/pdf-compressor-skill/SKILL.md
+mkdir -p ~/.claude/skills
+mv pdf-compressor ~/.claude/skills/
 ```
+
+然后打开（或创建）`~/.claude/CLAUDE.md`，加入：
+
+```markdown
+## Skills
+@~/.claude/skills/pdf-compressor/SKILL.md
+```
+
+下次启动 Claude Code 时 skill 就自动生效了。
+
+> **验证是否加载成功**：问 Claude "你有哪些 skill？"，它应该会提到 PDF 压缩。
 
 ### 使用方式
 
 **作为 Claude skill** — 直接用自然语言说：
-> "帮我把这篇论文压缩一下，越小越好。"
-> "压缩到 1MB 左右，要发微信。"
-> "Compress this, I need it under 2MB."
+> "帮我把这篇论文压缩一下。"
+> "这个 PDF 太大了，帮我压一下，我要上传给 AI。"
+> "Compress this paper."
 
-Claude 估算好参数，一次执行，不需要你来回调整。
+Claude 会先给你一个 DPI 选项让你选，压缩后汇报真实结果。
 
 **作为独立 CLI 工具：**
 ```bash
@@ -219,32 +244,35 @@ python pdf_compress.py
 
 # 命名预设
 python pdf_compress.py paper.pdf -q screen     # 72 dpi，最小
-python pdf_compress.py paper.pdf -q ebook      # 150 dpi，默认
+python pdf_compress.py paper.pdf -q ebook      # 150 dpi
 python pdf_compress.py paper.pdf -q printer    # 300 dpi
 
-# 1–4 档快捷选择
-python pdf_compress.py paper.pdf -l 1          # 50 dpi，激进压缩
-python pdf_compress.py paper.pdf -l 3          # 120 dpi，中等
+# 1–5 档快捷选择
+python pdf_compress.py paper.pdf -l 1          # 72 dpi
+python pdf_compress.py paper.pdf -l 3          # 150 dpi
+python pdf_compress.py paper.pdf -l 5          # 300 dpi
 
 # 直接指定 DPI
-python pdf_compress.py paper.pdf --dpi 80
+python pdf_compress.py paper.pdf --dpi 200
 
 # 指定输出目录
-python pdf_compress.py paper.pdf -q ebook -o ~/Desktop
+python pdf_compress.py paper.pdf --dpi 200 -o ~/Desktop
 ```
 
 ### 质量选项
 
-| 选项 | DPI | 典型大小* | 适合场景 |
-|------|-----|---------|---------|
-| `-q screen` / `-l 2` | 72 | 原始的 10–20% | 分享、上传给 AI |
-| `-q ebook` / `-l 4` | 150 | 原始的 30–50% | 日常阅读（默认） |
-| `-q printer` | 300 | 原始的 60–80% | 打印、归档 |
-| `-l 1` | 50 | 原始的 5–10% | 激进压缩，最后手段 |
-| `-l 3` | 120 | 原始的 20–35% | screen 和 ebook 之间 |
-| `--dpi N` | 任意 | 因文件而异 | 精确控制 |
+日常论文压缩推荐从 **200 dpi** 开始，压缩幅度明显，图表在屏幕和打印时都还清晰。
 
-*基于典型的 8–10 MB 图片多的会议论文估算。
+| 选项 | DPI | 图片质量 | 适合场景 |
+|------|-----|---------|---------|
+| `-q screen` / `-l 1` | 72 | 低，明显模糊 | 快速分享、上传给 AI |
+| `-l 2` | 120 | 中低 | 邮件附件、随手阅读 |
+| `-q ebook` / `-l 3` | 150 | 中 | 日常屏幕阅读 |
+| `-l 4` / `--dpi 200` | 200 | 中高 | **推荐起点** — 论文压缩的好平衡 |
+| `-q printer` / `-l 5` | 300 | 高 | 归档、专业打印 |
+| `--dpi N` | 任意 | — | 精确控制 |
+
+> 实际压缩后的文件大小取决于 PDF 内容，无法事先预测。Claude 压缩完成后会汇报真实数字。
 
 ### 定制
 
@@ -255,7 +283,7 @@ python pdf_compress.py paper.pdf -q ebook -o ~/Desktop
 ## Files
 
 ```
-pdf-compressor-skill/
+pdf-compressor/
 ├── pdf_compress.py   # The compression script (CLI + agent mode)
 ├── SKILL.md          # Claude skill definition
 ├── install_gs.sh     # One-command Ghostscript installer (auto-detects OS)
